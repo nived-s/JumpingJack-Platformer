@@ -69,7 +69,6 @@ int main()
     // Set positions
     ground1.setPosition({ 0.f, window.getSize().y - 80.f});
     ground2.setPosition({ ground1.getGlobalBounds().size.x, window.getSize().y - 80.f });
-    
 
     // Scoring system
     int score = 0;
@@ -87,10 +86,25 @@ int main()
     ground.setFillColor(sf::Color(29, 30, 10));
     ground.setPosition({ 0.f, window.getSize().y - ground.getSize().y });
 
-    // Player
-    sf::RectangleShape player(sf::Vector2f(50.f, 120.f));
+    // Animation variables
+    const int frameWidth = 80;
+    const int frameHeight = 80;
+    const int numFrames = 8;
+    float animationTimer = 0.f;
+    const float animationInterval = 0.1f; // Time per frame (in seconds)
+    int currentFrame = 0;
+
+    // Player hitbox
+    sf::RectangleShape player(sf::Vector2f(50.f, 90.f));
     player.setFillColor(sf::Color(0, 0, 0));
-    player.setPosition({ (player.getSize().x) * 3, window.getSize().y - ground.getSize().y - player.getSize().y });
+    player.setPosition({ (window.getSize().x) / 3.7f , window.getSize().y - ground.getSize().y - player.getSize().y });
+
+    // Player sprites
+    sf::Texture playerCharacter;
+    playerCharacter.loadFromFile("..\\..\\..\\..\\Assets\\Run-Sheet.png");
+    sf::Sprite playerSprite(playerCharacter, sf::IntRect({ 0, 0 }, { frameWidth, frameHeight }));
+    playerSprite.setScale({ 2.f, 2.f });
+    playerSprite.setPosition({ ( window.getSize().x) / 5.f, window.getSize().y - ground.getSize().y - playerSprite.getScale().y - 120.f});
 
     // Player velocity & gravity
     bool isJumping = false;
@@ -103,7 +117,6 @@ int main()
     const float obstacleSpeed = -10.f;
     const float spawnInterval = 0.5f; // spawn every 0.5 seconds
     float spawnTimer = 0.f;
-
 
     // Game end Text
     sf::Text endText(font);
@@ -163,15 +176,29 @@ int main()
                     // Restarting game processes
                     isGameRunning = true;
                     score = 0;      // reset score
-                    player.setPosition({ (player.getSize().x) * 3, window.getSize().y - ground.getSize().y - player.getSize().y });     // update player location to default
+                    playerSprite.setPosition({ (window.getSize().x) / 5.f, window.getSize().y - ground.getSize().y - playerSprite.getScale().y - 120.f });    // update player location to default
+                    player.setPosition({ (window.getSize().x) / 3.7f , window.getSize().y - ground.getSize().y - player.getSize().y });
                     obstacles.clear();      // reset obstacles list
                 }
             }
         }
 
+        // Delta time calculation (60 FPS)
+        float deltaTime = 1.f / 60;  
+
         // Game is running without collision
         if (isGameRunning)
-        {
+        {   
+            // Update animation frame
+            // -- this way player animation is stopped when obstacle is hit and isGameRunning becomes false
+            animationTimer += deltaTime;
+            if (animationTimer >= animationInterval)
+            {
+                animationTimer = 0.f;
+                currentFrame = (currentFrame + 1) % numFrames;
+                playerSprite.setTextureRect(sf::IntRect({ currentFrame * frameWidth, 0 }, { frameWidth, frameHeight }));
+            } 
+
             // Background movement
             background1.move({ -4.f, 0 });
             background2.move({ -4.f, 0 });
@@ -194,19 +221,20 @@ int main()
             }
 
             if (ground2.getPosition().x + ground2.getGlobalBounds().size.x < 0)
-            {
+            {   
                 ground2.setPosition({ ground1.getPosition().x + ground1.getGlobalBounds().size.x, ground2.getPosition().y });
             }
 
-
             // Apply gravity and make player jump
             playerVelocityY += gravity;
+            playerSprite.move({ 0, playerVelocityY });
             player.move({ 0, playerVelocityY });
 
             // Check if player landed back on ground
-            if (player.getPosition().y >= window.getSize().y - ground.getSize().y - player.getSize().y)
+            if (playerSprite.getPosition().y >= window.getSize().y - ground.getSize().y - playerSprite.getScale().y - 120.f)
             {
-                player.setPosition({ player.getPosition().x, window.getSize().y - ground.getSize().y - player.getSize().y });
+                playerSprite.setPosition({ playerSprite.getPosition().x, window.getSize().y - ground.getSize().y - playerSprite.getScale().y - 120.f});
+                player.setPosition({ player.getPosition().x,window.getSize().y - ground.getSize().y - player.getSize().y });
                 playerVelocityY = 0.f;
                 isJumping = false;
             }
@@ -273,8 +301,8 @@ int main()
         window.draw(ground);
         window.draw(ground1);
         window.draw(ground2);
-        window.draw(player);
         window.draw(scoreText);
+        window.draw(playerSprite);
         for (const auto& obstacle : obstacles)
         {
             window.draw(obstacle.shape);

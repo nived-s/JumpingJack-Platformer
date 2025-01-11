@@ -9,25 +9,23 @@
 class Obstacle
 {
 public:
-    sf::RectangleShape shape;
     float speed;
+    sf::Sprite sprite;
 
-    Obstacle(float x, float y, float width, float height, float speed)
-        : speed(speed)
+    Obstacle(float x, float y, float speed, const sf::Texture& texture)
+        : speed(speed), sprite(texture, sf::IntRect({ 15, 0 }, { 54, 54 }))
     {
-        shape.setSize(sf::Vector2f(width, height));
-        shape.setFillColor(sf::Color::Red);
-        shape.setPosition({ x, y });
+        sprite.setPosition({ x, y });
     }
 
     void move()
     {
-        shape.move({ speed, 0 });
+        sprite.move({ speed, 0 });
     }
 
     bool isOffScreen(float windowWidth) const
     {
-        return shape.getPosition().x > windowWidth;
+        return sprite.getPosition().x > windowWidth;
     }
 };
 
@@ -111,6 +109,13 @@ int main()
     const float gravity = 1.0f;
     const float jumpVelocity = -22.f;
     float playerVelocityY = 0.f;
+
+    // Loading Obstacles(bee)
+    sf::Texture obstacleTexture;
+    if (!obstacleTexture.loadFromFile("..\\..\\..\\..\\Assets\\Fly-Sheet.png")) {
+        std::cerr << "Error loading textures!" << std::endl;
+        return -1;
+    }
 
     // Obstacles
     std::vector<Obstacle> obstacles;
@@ -251,7 +256,7 @@ int main()
                 float minY = 150.f;
                 float maxY = window.getSize().y - ground.getSize().y - randomSize.y;
                 float obstacleY = minY + static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX / (maxY - minY));
-                obstacles.emplace_back(obstacleX, obstacleY, randomSize.x, randomSize.y, obstacleSpeed);
+                obstacles.emplace_back(obstacleX, obstacleY, obstacleSpeed, obstacleTexture);
             }
 
             // Move and remove obstacles
@@ -271,7 +276,7 @@ int main()
             // Collision detection using AABB
             for (const auto& obstacle : obstacles)
             {
-                if (player.getGlobalBounds().findIntersection(obstacle.shape.getGlobalBounds()))
+                if (player.getGlobalBounds().findIntersection(obstacle.sprite.getGlobalBounds()))
                 {
                     // set flag to stop game state
                     isGameRunning = false;
@@ -305,7 +310,7 @@ int main()
         window.draw(playerSprite);
         for (const auto& obstacle : obstacles)
         {
-            window.draw(obstacle.shape);
+            window.draw(obstacle.sprite);
         }
 
         // Collision is detected and game needs to stop
